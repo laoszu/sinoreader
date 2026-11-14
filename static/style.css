@@ -1,0 +1,13 @@
+body { margin: 0; background: #ccc; font-family: sans-serif; }
+nav { position: sticky; top: 0; z-index: 5; padding: 8px; background: #333; text-align: center; }
+nav a, nav span { margin: 0 8px; color: #fff; font-size: 20px; }
+.picker { margin-top: 30vh; text-align: center; }
+.error { color: red; }
+
+.page { position: relative; margin: 8px auto; background: #fff; container-type: size; }
+.page img { display: block; width: 100%; }
+.line { position: absolute; inset: 0; pointer-events: none; font-size: 0; }
+.c { position: absolute; overflow: hidden; white-space: pre; line-height: 1; color: transparent; pointer-events: auto; }
+
+#popup { display: none; position: absolute; z-index: 10; max-width: 90vw; padding: 8px;
+         background: #fff; border: 1px solid #888; white-space: pre-line; }

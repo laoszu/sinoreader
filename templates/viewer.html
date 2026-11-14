@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block body %}
+<nav>
+  <a href="{{ url_for('home') }}">Open</a>
+  <a id="out" href="{{ url_for('view', doc_id=doc, zoom=zoom_out, pinyin=pinyin) }}">&minus;</a>
+  <span>{{ zoom }}%</span>
+  <a id="in" href="{{ url_for('view', doc_id=doc, zoom=zoom_in, pinyin=pinyin) }}">+</a>
+  <a id="fit" href="{{ url_for('view', doc_id=doc, pinyin=pinyin) }}">Fit</a>
+  <a href="{{ url_for('view', doc_id=doc, zoom=zoom, pinyin=0 if pinyin else 1) }}">{{ '拼音!' if pinyin else '拼音' }}</a>
+</nav>
+<main id="pages" data-doc="{{ doc }}" data-len="{{ lookup_len }}">
+  {% for n, ratio in pages %}
+  <div class="page" data-n="{{ n }}" style="width: {{ zoom }}%; aspect-ratio: 1 / {{ ratio }}">
+    <img loading="lazy" alt="Page {{ n + 1 }}"
+         src="{{ url_for('page_image', doc_id=doc, n=n, zoom=zoom, pinyin=pinyin) }}">
+  </div>
+  {% endfor %}
+</main>
+<div id="popup"></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% endblock %}
