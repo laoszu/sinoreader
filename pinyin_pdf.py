@@ -13,10 +13,14 @@ def add_pinyin(page):
                 for c in span["chars"]:
                     # first and last character of cjk
                     if "㐀" <= c["c"] <= "鿿":
-                        chars.append((c["c"], pymupdf.Rect(c["bbox"])))
+                        x0, _, x1, _ = c["bbox"]
+                        base = c["origin"][1]
+                        chars.append((c["c"], pymupdf.Rect(x0, base - span["size"], x1, base)))
     if not chars:
         return
     labels = [p[0] for p in pinyin("".join(c for c, _ in chars), style=Style.TONE)]
+    
+    page.wrap_contents()  # Google Docs/Skia PDFs leave a flipped positions or sth
     tw = pymupdf.TextWriter(page.rect)
     for label, (_, r) in zip(labels, chars):
         w = fnt.text_length(label, fontsize=config.PINYIN_SIZE)
