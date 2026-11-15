@@ -7,4 +7,6 @@
   </form>
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 </main>
+
+<script src="{{ url_for('static', filename='picker.js') }}" defer></script>
 {% endblock %}

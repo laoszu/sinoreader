@@ -45,7 +45,7 @@ async function show(span, ev) {
   if (current !== span) return;   // pointer moved on
   popup.textContent = groups.length
     ? groups.flatMap((g) => g.entries).map((e) => `${e.simplified} ${e.traditional} ${e.pinyin}\n${e.polish}\n${e.english}`).join("\n\n")
-    : "Not in dictionary";
+    : "nie ma w słowniku 😭";
   popup.style.display = "block";
   popup.style.left = Math.min(ev.pageX, scrollX + innerWidth - popup.offsetWidth - 8) + "px";
   popup.style.top = ev.pageY + 16 + "px";
