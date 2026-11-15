@@ -3,6 +3,7 @@ import sqlite3
 import os
 
 import pandas as pd
+import config
 
 def create_db():
     os.makedirs('db', exist_ok=True)
@@ -34,7 +35,8 @@ def update_db():
         df = pd.read_csv(os.path.join("custom_dict", file))
         df.to_sql('custom_dict', conn, if_exists='append', index=False)
 
-        # print(pd.read_sql('''SELECT * FROM custom_dict''', conn))
+    # currently the longest (update config :p)
+    print(pd.read_sql('''SELECT MAX(LENGTH(simplified)) FROM custom_dict''', conn)['MAX(LENGTH(simplified))'].iloc[0])
 
     conn.close()
     

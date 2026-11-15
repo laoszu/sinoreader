@@ -8,4 +8,4 @@ PINYIN_OFFSET = 1.5
 PINYIN_FONT = "china-s"
 
 DICT_DB = "db/custom_dict.db"
-LOOKUP_MAX_LEN = 8 #longest phrase, staring from the clicked char position
+LOOKUP_MAX_LEN = 5 #longest phrase, staring from the clicked char position

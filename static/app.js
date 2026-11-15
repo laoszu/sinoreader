@@ -38,10 +38,15 @@ function hide() { current = null; popup.style.display = "none"; }
 
 async function show(span, ev) {
   current = span;
-  const list = chars.get(span.closest(".page")), i = +span.dataset.i;
-  const q = list.slice(i, i + +pages.dataset.len).map((c) => c[0]).join("");
-  if (!/^[㐀-鿿]/.test(q)) return hide();
-  const groups = await (await fetch("/lookup?q=" + encodeURIComponent(q))).json();
+  const list = chars.get(span.closest(".page"));
+  const i = parseInt(span.dataset.i, 10); // relative pos
+  const len = parseInt(pages.dataset.len, 10);
+  const start = Math.max(0, i - len + 1);
+  const q = list.slice(start, i + len).map((c) => c[0]).join("");
+  const pos = i - start;
+
+  if (!/[㐀-鿿]/.test(q[pos])) return hide();
+  const groups = await (await fetch("/lookup?q=" + encodeURIComponent(q) + "&pos=" + pos)).json();
   if (current !== span) return;   // pointer moved on
   popup.textContent = groups.length
     ? groups.flatMap((g) => g.entries).map((e) => `${e.simplified} ${e.traditional} ${e.pinyin}\n${e.polish}\n${e.english}`).join("\n\n")

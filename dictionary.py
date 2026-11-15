@@ -29,11 +29,15 @@ def _index():
         _cache.update(mtime=mtime, index=index)
     return _cache["index"]
 
-def lookup(text):
+def lookup(text, pos=0):
     # every prefix of text found in the dictionary, longest first
     index = _index()
     results = []
     for n in range(min(len(text), config.LOOKUP_MAX_LEN), 0, -1):
-        if text[:n] in index:
-            results.append({"word": text[:n], "entries": index[text[:n]]})
+        for start in range(max(0, pos - n+1), min(pos + 1, len(text)-n+1)):
+            word = text[start:start + n]
+            if word in index:
+                results.append({"word": word, "entries": index[word]})
+
+    #print(results)
     return results
