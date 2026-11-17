@@ -2,17 +2,21 @@
 {% block body %}
 <nav>
   <a href="{{ url_for('home') }}">Open</a>
-  <a id="out" href="{{ url_for('view', doc_id=doc, zoom=zoom_out, pinyin=pinyin) }}">&minus;</a>
-  <span>{{ zoom }}%</span>
-  <a id="in" href="{{ url_for('view', doc_id=doc, zoom=zoom_in, pinyin=pinyin) }}">+</a>
-  <a id="fit" href="{{ url_for('view', doc_id=doc, pinyin=pinyin) }}">Fit</a>
-  <a href="{{ url_for('view', doc_id=doc, zoom=zoom, pinyin=0 if pinyin else 1) }}">{{ '拼音!' if pinyin else '拼音' }}</a>
+  <a id="out" href="#">&minus;</a>
+  <span id="zoomlabel">{{ zoom }}%</span>
+  <a id="in" href="#">+</a>
+  <a id="fit" href="#">Fit</a>
+  <a id="pinyin" href="#">{{ '拼音!' if pinyin else '拼音' }}</a>
 </nav>
-<main id="pages" data-doc="{{ doc }}" data-len="{{ lookup_len }}">
+<main id="pages"
+      data-doc="{{ doc }}" data-len="{{ lookup_len }}"
+      data-zoom="{{ zoom }}" data-pinyin="{{ pinyin }}"
+      data-min="{{ min_zoom }}" data-max="{{ max_zoom }}" data-step="{{ zoom_step }}"
+      style="--zoom: {{ zoom }}">
   {% for n, ratio in pages %}
-  <div class="page" data-n="{{ n }}" style="width: {{ zoom }}%; aspect-ratio: 1 / {{ ratio }}">
+  <div class="page" data-n="{{ n }}" style="aspect-ratio: 1 / {{ ratio }}">
     <img loading="lazy" alt="Page {{ n + 1 }}"
-         src="{{ url_for('page_image', doc_id=doc, n=n, zoom=zoom, pinyin=pinyin) }}">
+        src="{{ url_for('page_svg', doc_id=doc, n=n, pinyin=pinyin) }}">
   </div>
   {% endfor %}
 </main>

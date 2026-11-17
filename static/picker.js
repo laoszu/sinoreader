@@ -1,41 +1,18 @@
 const form = document.querySelector("form");
-
-let snapshot = null;
-
 const input = form.elements["file"];
+let snapshot = null;  // read into memory on selection, so a remote-drive file can't vanish before submit
 
 input.addEventListener("change", async () => {
-    const file = input.files[0];
-
-    if (file) {
-        const buffer = await file.arrayBuffer();
-        snapshot = { buf: buffer, name: file.name };
-    } else
-        snapshot = null;
+  const f = input.files[0];
+  snapshot = f && { blob: new Blob([await f.arrayBuffer()]), name: f.name };
 });
 
-form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-
-    if (!snapshot)
-        return;
-
-    const formData = new FormData();
-    const blob = new Blob([snapshot.buf]);
-    formData.append("file", blob, snapshot.name);
-
-    const response = await fetch(form.action, {
-        method: "POST",
-        body: formData,
-    });
-
-    if (response.redirected) {
-        location.href = response.url;
-        return;
-    }
-
-    const html = await response.text();
-    document.open();
-    document.write(html);
-    document.close();
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!snapshot) return;
+  const body = new FormData();
+  body.append("file", snapshot.blob, snapshot.name);
+  const r = await fetch(form.action, { method: "POST", body });
+  if (r.redirected) return (location.href = r.url);
+  document.open(); document.write(await r.text()); document.close();
 });

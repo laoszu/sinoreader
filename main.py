@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 
 import pymupdf
@@ -15,20 +16,12 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = config.MAX_UPLOAD_MB * 1024 * 1024
 
 def pdf_path(doc_id):
-    try:
-        valid = uuid.UUID(doc_id).hex == doc_id
-    except ValueError:
-        valid = False
+    valid = len(doc_id) == 32 and all(c in "0123456789abcdef" for c in doc_id) # hex id
     path = os.path.join(UPLOADS, doc_id + ".pdf")
+    
     if not valid or not os.path.isfile(path):
-        abort(404)
+        abort(redirect(url_for("home")))
     return path
-
-def clamp(z):
-    return max(config.MIN_ZOOM, min(config.MAX_ZOOM, round(z)))
-
-def zoom_arg():
-    return clamp(request.args.get("zoom", 100, type=int))
 
 def cached(resp):
     resp.headers["Cache-Control"] = "private, max-age=3600"
@@ -63,25 +56,25 @@ def upload():
 
 @app.route("/doc/<doc_id>")
 def view(doc_id):
-    zoom = zoom_arg()
     return render_template(
         "viewer.html",
         doc=doc_id,
         pages=list(enumerate(pdf_tools.ratios(pdf_path(doc_id)))),
-        zoom=zoom,
+        zoom=min(config.MAX_ZOOM, max(config.MIN_ZOOM, request.args.get("zoom", 100, type=int))),
         pinyin=request.args.get("pinyin", 0, type=int),
         lookup_len=config.LOOKUP_MAX_LEN,
-        zoom_in=clamp(zoom * config.ZOOM_STEP),
-        zoom_out=clamp(zoom / config.ZOOM_STEP),
+        min_zoom=config.MIN_ZOOM,
+        max_zoom=config.MAX_ZOOM,
+        zoom_step=config.ZOOM_STEP,
     )
 
-@app.route("/doc/<doc_id>/page/<int:n>.png")
-def page_image(doc_id, n):
+@app.route("/doc/<doc_id>/page/<int:n>.svg")
+def page_svg(doc_id, n):
     try:
-        png = pdf_tools.render(pdf_path(doc_id), n, zoom_arg(), request.args.get("pinyin", 0, type=int))
+        svg = pdf_tools.render_svg(pdf_path(doc_id), n, request.args.get("pinyin", 0, type=int))
     except IndexError:
         abort(404)
-    return cached(app.response_class(png, mimetype="image/png"))
+    return cached(app.response_class(svg, mimetype="image/svg+xml"))
 
 @app.route("/doc/<doc_id>/page/<int:n>/chars.json")
 def page_chars(doc_id, n):

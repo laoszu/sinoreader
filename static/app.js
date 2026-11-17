@@ -1,27 +1,49 @@
 const pages = document.getElementById("pages");
 const popup = document.getElementById("popup");
+const ds = pages.dataset;
 const chars = new Map();
 let current = null;
+let zoom = +ds.zoom, pinyin = +ds.pinyin;
 
-// ctrl +/-/0 and ctrl+wheel zoom the document
-const zoom = (id) => (location.href = document.getElementById(id).href);
-addEventListener("keydown", (e) => {
-  const k = { "+": "in", "=": "in", "-": "out", "0": "fit" }[e.key];
-  if (k && (e.ctrlKey || e.metaKey)) { e.preventDefault(); zoom(k); }
-  if (e.key === "Escape") hide();
+function setZoom(z, x = innerWidth / 2, y = innerHeight / 2) {
+  z = Math.max(+ds.min, Math.min(+ds.max, Math.round(z)));
+  if (z === zoom) return;
+  const k = z / zoom;
+  zoom = z;
+  pages.style.setProperty("--zoom", z);
+  document.getElementById("zoomlabel").textContent = z + "%";
+  scrollTo((scrollX + x) * k - x, (scrollY + y) * k - y);
+  history.replaceState(null, "", `?zoom=${z}&pinyin=${pinyin}`);
+}
+
+const on = (id, fn) => document.getElementById(id).addEventListener("click", (e) => { e.preventDefault(); fn(); });
+on("in", () => setZoom(zoom * +ds.step));
+on("out", () => setZoom(zoom / +ds.step));
+on("fit", () => setZoom(100));
+on("pinyin", () => {
+  pinyin = 1 - pinyin;
+  document.getElementById("pinyin").textContent = pinyin ? "拼音!" : "拼音";
+  history.replaceState(null, "", `?zoom=${zoom}&pinyin=${pinyin}`);
+  document.querySelectorAll(".page img").forEach((img) => {
+    img.src = `/doc/${ds.doc}/page/${img.closest(".page").dataset.n}.svg?pinyin=${pinyin}`;
+  });
 });
+
+addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
+
 addEventListener("wheel", (e) => {
-  if (e.ctrlKey) { e.preventDefault(); zoom(e.deltaY < 0 ? "in" : "out"); }
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  setZoom(zoom * Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
 }, { passive: false });
 
-// selectable text: transparent span per character over the page image
 document.querySelectorAll(".page").forEach(async (page) => {
-  const list = await (await fetch(`/doc/${pages.dataset.doc}/page/${page.dataset.n}/chars.json`)).json();
+  const list = await (await fetch(`/doc/${ds.doc}/page/${page.dataset.n}/chars.json`)).json();
   chars.set(page, list);
   let line, last = -1;
   list.forEach(([ch, x, y, w, h, n], i) => {
     if (n !== last) {
-      if (line) line.append(document.createElement("br"));   // line breaks when copying
+      if (line) line.append(document.createElement("br"));
       line = Object.assign(document.createElement("div"), { className: "line" });
       page.append(line);
       last = n;
@@ -33,21 +55,20 @@ document.querySelectorAll(".page").forEach(async (page) => {
   });
 });
 
-// dictionary popup: hover (mouse) or tap (phone)
 function hide() { current = null; popup.style.display = "none"; }
 
 async function show(span, ev) {
   current = span;
   const list = chars.get(span.closest(".page"));
-  const i = parseInt(span.dataset.i, 10); // relative pos
-  const len = parseInt(pages.dataset.len, 10);
+  const i = parseInt(span.dataset.i, 10);
+  const len = parseInt(ds.len, 10);
   const start = Math.max(0, i - len + 1);
   const q = list.slice(start, i + len).map((c) => c[0]).join("");
   const pos = i - start;
 
   if (!/[㐀-鿿]/.test(q[pos])) return hide();
   const groups = await (await fetch("/lookup?q=" + encodeURIComponent(q) + "&pos=" + pos)).json();
-  if (current !== span) return;   // pointer moved on
+  if (current !== span) return;
   popup.textContent = groups.length
     ? groups.flatMap((g) => g.entries).map((e) => `${e.simplified} ${e.traditional} ${e.pinyin}\n${e.polish}\n${e.english}`).join("\n\n")
     : "nie ma w słowniku 😭";
@@ -57,7 +78,7 @@ async function show(span, ev) {
 }
 
 addEventListener("pointerover", (e) => {
-  if (e.pointerType !== "mouse" || e.buttons) return;   // not while selecting
+  if (e.pointerType !== "mouse" || e.buttons) return;
   const s = e.target.closest(".c");
   s ? show(s, e) : hide();
 });
