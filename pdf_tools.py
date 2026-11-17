@@ -1,19 +1,38 @@
+import re
+
 import pymupdf
 
-import config
 from pinyin_pdf import add_pinyin
 
 def ratios(path):
     with pymupdf.open(path) as d:
         return [p.rect.height / p.rect.width for p in d]
 
-def render(path, n, zoom, pinyin=False):
+def render_svg(path, n, pinyin=False):
     with pymupdf.open(path) as d:
         page = d[n]
         if pinyin:
             add_pinyin(page)
-        scale = config.RENDER_WIDTH * zoom / 100 / page.rect.width
-        return page.get_pixmap(matrix=pymupdf.Matrix(scale, scale), alpha=False).tobytes("png")
+        svg = page.get_svg_image(matrix=pymupdf.Identity, text_as_path=True)
+    
+    # glyphs are drawn twice (fill + stroke overlay, fake bold), so drop the overlay
+    out, pos = [], 0
+    while (start := svg.find("<use ", pos)) != -1:
+        end = svg.find(">", start)
+
+        if end == -1:
+            break
+        end += 1
+        out.append(svg[pos:start])
+        tag = svg[start:end]
+        if tag.endswith("/>") and 'fill="none"' in tag:
+            if svg.startswith("\n", end):
+                end += 1
+        else:
+            out.append(tag) # plain <use> - kept
+        pos = end
+    out.append(svg[pos:])
+    return "".join(out)
 
 def chars(path, n):
     # [char, x, y, w, h, line], boxes as fractions of the page size
