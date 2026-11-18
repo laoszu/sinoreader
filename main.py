@@ -89,6 +89,11 @@ def page_chars(doc_id, n):
         abort(404)
     return gz_response(gz, "application/json")
 
+@app.route("/doc/<doc_id>/pinyin.pdf")
+def pinyin_pdf(doc_id):
+    out = pdf_tools.render_pdf(pdf_path(doc_id))
+    return send_file(out, mimetype="application/pdf", as_attachment=True, download_name=f"{doc_id}_pinyin.pdf", max_age=31536000, conditional=True)
+
 @app.route("/lookup")
 def lookup_api():
     resp = jsonify(lookup(request.args.get("q", ""), request.args.get("pos", 0, type=int)))
@@ -96,4 +101,4 @@ def lookup_api():
     return resp
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)

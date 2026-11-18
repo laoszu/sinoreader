@@ -29,6 +29,10 @@ on("pinyin", () => {
   });
 });
 
+on("save", () => {
+    location.href = `/doc/${ds.doc}/pinyin.pdf`;
+});
+
 addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
 
 addEventListener("wheel", (e) => {

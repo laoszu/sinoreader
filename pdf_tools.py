@@ -70,3 +70,15 @@ def chars(path, n):
                 line_no += 1
     save(gz, json.dumps(out, separators=(",", ":"), ensure_ascii=False))
     return gz
+
+def render_pdf(path):
+    out = f"{path}.pinyin.pdf"
+    if os.path.exists(out):
+        return out
+    tmp = f"{out}.{os.getpid()}.tmp"
+    with pymupdf.open(path) as d:
+        for page in d:
+            add_pinyin(page)
+        d.save(tmp, garbage=3, deflate=True)
+    os.replace(tmp, out)
+    return out

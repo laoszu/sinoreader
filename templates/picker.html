@@ -4,7 +4,15 @@
   <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
     <input type="file" name="file" required>
     <button>Open PDF</button>
-  </form>
+    </form>
+    {% if examples %}
+    <p>or select from:
+    <select id="preloaded-file">
+        <option value="">-</option>
+        {% for id, name in examples %}<option value="{{ id }}">{{ name }}</option>{% endfor %}
+    </select>
+    </p>
+    {% endif %}
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
 </main>
 
