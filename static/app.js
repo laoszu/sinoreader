@@ -37,15 +37,15 @@ addEventListener("wheel", (e) => {
   setZoom(zoom * Math.exp(-e.deltaY * 0.01), e.clientX, e.clientY);
 }, { passive: false });
 
-document.querySelectorAll(".page").forEach(async (page) => {
+async function buildChars(page) {
   const list = await (await fetch(`/doc/${ds.doc}/page/${page.dataset.n}/chars.json`)).json();
   chars.set(page, list);
   let line, last = -1;
+  const frag = document.createDocumentFragment();
   list.forEach(([ch, x, y, w, h, n], i) => {
     if (n !== last) {
-      if (line) line.append(document.createElement("br"));
       line = Object.assign(document.createElement("div"), { className: "line" });
-      page.append(line);
+      frag.append(line);
       last = n;
     }
     const s = Object.assign(document.createElement("span"), { className: "c", textContent: ch });
@@ -53,7 +53,14 @@ document.querySelectorAll(".page").forEach(async (page) => {
     s.style.cssText = `left:${x * 100}%;top:${y * 100}%;width:${w * 100}%;height:${h * 100}%;font-size:${h * 100}cqh`;
     line.append(s);
   });
-});
+  page.append(frag);
+}
+
+// build the text layer only for pages near the viewport
+const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+  if (e.isIntersecting) { io.unobserve(e.target); buildChars(e.target); }
+}), { rootMargin: "1500px 0px" });
+document.querySelectorAll(".page").forEach((p) => io.observe(p));
 
 function hide() { current = null; popup.style.display = "none"; }
 

@@ -3,7 +3,7 @@ import re
 import uuid
 
 import pymupdf
-from flask import Flask, abort, jsonify, redirect, render_template, request, url_for
+from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, url_for
 
 import config
 import pdf_tools
@@ -13,6 +13,7 @@ UPLOADS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
 os.makedirs(UPLOADS, exist_ok=True)
 
 app = Flask(__name__)
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 3600
 app.config["MAX_CONTENT_LENGTH"] = config.MAX_UPLOAD_MB * 1024 * 1024
 
 def pdf_path(doc_id):
@@ -23,8 +24,12 @@ def pdf_path(doc_id):
         abort(redirect(url_for("home")))
     return path
 
-def cached(resp):
-    resp.headers["Cache-Control"] = "private, max-age=3600"
+def gz_response(gz_path, mimetype):
+    # pre-compressed cached file, immutable (doc ids are unique), conditional requests handled by send_file
+    resp = send_file(gz_path, mimetype=mimetype, max_age=31536000, conditional=True)
+    resp.headers["Content-Encoding"] = "gzip"
+    resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    resp.headers["Vary"] = "Accept-Encoding"
     return resp
 
 @app.route("/")
@@ -71,21 +76,24 @@ def view(doc_id):
 @app.route("/doc/<doc_id>/page/<int:n>.svg")
 def page_svg(doc_id, n):
     try:
-        svg = pdf_tools.render_svg(pdf_path(doc_id), n, request.args.get("pinyin", 0, type=int))
+        gz = pdf_tools.render_svg(pdf_path(doc_id), n, request.args.get("pinyin", 0, type=int))
     except IndexError:
         abort(404)
-    return cached(app.response_class(svg, mimetype="image/svg+xml"))
+    return gz_response(gz, "image/svg+xml")
 
 @app.route("/doc/<doc_id>/page/<int:n>/chars.json")
 def page_chars(doc_id, n):
     try:
-        return cached(jsonify(pdf_tools.chars(pdf_path(doc_id), n)))
+        gz = pdf_tools.chars(pdf_path(doc_id), n)
     except IndexError:
         abort(404)
+    return gz_response(gz, "application/json")
 
 @app.route("/lookup")
 def lookup_api():
-    return jsonify(lookup(request.args.get("q", ""), request.args.get("pos",0, type=int)))
+    resp = jsonify(lookup(request.args.get("q", ""), request.args.get("pos", 0, type=int)))
+    resp.headers["Cache-Control"] = "private, max-age=300"
+    return resp
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
